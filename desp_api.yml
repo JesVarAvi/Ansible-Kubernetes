@@ -1,0 +1,67 @@
+---
+- name: desplegar api
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: actualizar cache
+      apt:
+        update_cache: yes
+#########################################################
+    - name: crear directorio de la api
+      file:
+        path: /etc/api/  ######################
+        state: directory
+        #owner: jva
+        #group: jva
+        #mode: 755
+
+    - name: mover archivos de la aplicacion de manera local #contenido
+      copy:
+        src: API/
+        dest: /etc/api/ #################
+        #owner: jva
+        #group: jva
+        #mode: 0644
+        remote_src: false
+
+    - name: Configurar Firewall
+      ufw:
+        rule: allow
+        port: '80'
+        proto: http
+
+    - name: crear secret
+      shell: "kubectl create -f postgres-secret.yaml"
+      args:
+        chdir: /etc/api
+
+    - name: crear volumen pv
+      shell: "kubectl apply -f postgres-db-pv.yaml"
+      args:
+        chdir: /etc/api
+
+    - name: crear claim pvc
+      shell: "kubectl apply -f postgres-db-pvc.yaml"
+      args:
+        chdir: /etc/api
+
+    - name: crear deployment
+      shell: "kubectl apply -f postgres-db-deployment.yaml"
+      args:
+        chdir: /etc/api
+
+    - name: crear service
+      shell: "kubectl apply -f postgres-db-service.yaml"
+      args:
+        chdir: /etc/api
+
+    - name: crear deploy de la app
+      shell: "kubectl apply -f app-postgres-deployment.yaml"
+      args:
+        chdir: /etc/api
+
+    - name: crear service de la app
+      shell: "kubectl apply -f app-postgres-service.yaml"
+      args:
+        chdir: /etc/api
